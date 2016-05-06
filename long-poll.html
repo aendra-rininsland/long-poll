@@ -55,16 +55,18 @@ Example:
         }
       },
       attached: function() {
-        var newEtag;
-        var etag = this.etag;
-
         // Every n seconds make HEAD request. Requires the Etag header to be exposed!
         setInterval(function(){
+          var newEtag;
+          var etag = this._etag;
+          var context = this;
+
           function getHeaderTime () {
             try {
               newEtag = this.getResponseHeader('ETag');
+              console.log(newEtag, etag);
               if (newEtag !== etag) {
-                etag = newEtag;
+                context._etag = newEtag;
               }
             } catch(e) {
               console.error(e);
