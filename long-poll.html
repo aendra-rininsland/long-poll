@@ -1,0 +1,92 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../polymer/polymer.html">`
+
+<!--
+An element that fires an event when a document is updated.
+
+Example:
+
+    <long-poll url="http://somewhere.com/big-ole-blob.json" label="blob update" delay="60"></long-poll>
+-->
+
+<dom-module id="long-poll">
+  <script>
+    Polymer({
+      is: 'long-poll',
+      properties: {
+        /**
+         * URL to poll
+         * @type {String}
+         */
+        url: String,
+
+        /**
+         * Label to send in the event
+         * @type {String}
+         */
+        label: String,
+
+        /**
+         * Time between polling attempts, in seconds
+         * @type {Number}
+         */
+        delay: {
+          type: Number,
+          value: 20
+        },
+
+        /**
+         * Private property holding the most recent ETag.
+         * @type {String}
+         */
+        _etag: {
+          type: String,
+          observer: '_notifySubscribers',
+          value: null
+        }
+      },
+      attached: function() {
+        var newEtag;
+        var etag = this.etag;
+
+        // Every n seconds make HEAD request. Requires the Etag header to be exposed!
+        setInterval(function(){
+          function getHeaderTime () {
+            try {
+              newEtag = this.getResponseHeader('ETag');
+              if (newEtag !== etag) {
+                etag = newEtag;
+              }
+            } catch(e) {
+              console.error(e);
+            }
+          }
+
+          var oReq = new XMLHttpRequest();
+          oReq.open('HEAD', this.url); // Because we just want ETag, we're only asking for the headers.
+          oReq.onload = getHeaderTime;
+          oReq.send();
+        }.bind(this), this.delay * 1000);
+      },
+
+      /**
+       * The `long-poll-updated` event is fired whenever `etag` changes
+       *
+       * @event long-poll-updated
+       * @detail {{label: String, etag: String, url: String, timestamp, Number}}
+       */
+      _notifySubscribers: function(){
+        this.fire('long-poll-updated', {label: this.label, etag: this.etag, url: this.url, timestamp: Date.now()});
+      }
+    });
+  </script>
+</dom-module>
